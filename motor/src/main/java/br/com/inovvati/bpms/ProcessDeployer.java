@@ -37,7 +37,7 @@ public class ProcessDeployer {
             LOGGER.info("Starting process deployment...");
             
             Deployment deployment = repositoryService.createDeployment()
-                .name("starter-process-deployment")
+                .name("motor-process-deployment")
                 .addClasspathResource("process.bpmn")
                 .enableDuplicateFiltering(true)
                 .deploy();

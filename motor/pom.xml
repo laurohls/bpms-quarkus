@@ -8,7 +8,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>starter</artifactId>
+    <artifactId>motor</artifactId>
 
     <dependencies>
 
@@ -79,7 +79,7 @@
                                     <arguments>
                                         <argument>load</argument>
                                         <argument>docker-image</argument>
-                                        <argument>cibseven/quarkus-starter-example:latest</argument>
+                                        <argument>cibseven/quarkus-motor-example:latest</argument>
                                     </arguments>
                                 </configuration>
                             </execution>

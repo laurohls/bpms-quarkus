@@ -1,4 +1,4 @@
-# CIB seven Quarkus - Starter Example
+# CIB seven Quarkus - motor Example
 
 This is a simple Quarkus application that demonstrates BPMN process execution using CIB seven process engine.
 
@@ -6,7 +6,7 @@ This is a simple Quarkus application that demonstrates BPMN process execution us
 
 - **BPMN Process** (`src/main/resources/process.bpmn`): A simple process with start → service task → end
 - **Service Delegate** (`ServiceDelegate.java`): Java delegate that executes during the service task
-- **Process Starter** (`ProcessStarterResource.java`): REST endpoint to start process instances
+- **Process motor** (`ProcessStarterResource.java`): REST endpoint to start process instances
 - **Process Deployer** (`ProcessDeployer.java`): Automatically deploys the BPMN process on startup
 
 ## Prerequisites
@@ -19,10 +19,10 @@ This is a simple Quarkus application that demonstrates BPMN process execution us
 From the project root:
 
 ```bash
-mvn clean compile -pl starter
+mvn clean compile -pl motor
 ```
 
-Or from the `starter/` directory:
+Or from the `motor/` directory:
 
 ```bash
 mvn clean compile
@@ -33,10 +33,10 @@ mvn clean compile
 ### Development Mode (with hot reload)
 
 ```bash
-mvn quarkus:dev -pl starter
+mvn quarkus:dev -pl motor
 ```
 
-Or from the `starter/` directory:
+Or from the `motor/` directory:
 
 ```bash
 mvn quarkus:dev
@@ -47,8 +47,8 @@ mvn quarkus:dev
 Build and run the application:
 
 ```bash
-mvn clean package -pl starter
-java -jar starter/target/quarkus-app/quarkus-run.jar
+mvn clean package -pl motor
+java -jar motor/target/quarkus-app/quarkus-run.jar
 ```
 
 ## Testing the Application
@@ -97,19 +97,19 @@ This application is configured for Kubernetes deployment using Quarkus's built-i
 
 3. **Load image into kind cluster:**
    ```bash
-   kind load docker-image cibseven/quarkus-starter-example:latest --name cibseven-local
-   kubectl rollout restart deployment starter
+   kind load docker-image cibseven/quarkus-motor-example:latest --name cibseven-local
+   kubectl rollout restart deployment motor
    ```
 
 4. **Verify deployment:**
    ```bash
-   kubectl get pods -l app.kubernetes.io/name=starter
-   kubectl get svc -l app.kubernetes.io/name=starter
+   kubectl get pods -l app.kubernetes.io/name=motor
+   kubectl get svc -l app.kubernetes.io/name=motor
    ```
 
 5. **Access the application:**
    ```bash
-   kubectl port-forward service/starter 8080:8080
+   kubectl port-forward service/motor 8080:8080
    ```
 
 6. **Test the application:**
@@ -119,12 +119,12 @@ This application is configured for Kubernetes deployment using Quarkus's built-i
 
    Or test directly inside the pod:
    ```bash
-   kubectl exec -it deployment/starter -- curl localhost:8080/start-process
+   kubectl exec -it deployment/motor -- curl localhost:8080/start-process
    ```
 
 7. **View logs:**
    ```bash
-   kubectl logs -l app.kubernetes.io/name=starter
+   kubectl logs -l app.kubernetes.io/name=motor
    ```
 
 ### Development Mode with Kubernetes
@@ -139,7 +139,7 @@ mvn quarkus:dev -Dquarkus.profile=kind
 
 To remove the deployment:
 ```bash
-kubectl delete deployment,service -l app.kubernetes.io/name=starter
+kubectl delete deployment,service -l app.kubernetes.io/name=motor
 ```
 
 To delete the kind cluster:
