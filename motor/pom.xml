@@ -3,8 +3,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.cibseven</groupId>
-        <artifactId>cibseven-quarkus-examples</artifactId>
+        <groupId>br.com.eyedata.bpms</groupId>
+        <artifactId>bpms-scada</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
 

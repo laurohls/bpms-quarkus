@@ -1,6 +1,6 @@
-# CIB seven Quarkus - motor Example
+# EYEData BPMS Quarkus - motor Example
 
-This is a simple Quarkus application that demonstrates BPMN process execution using CIB seven process engine.
+This is a simple Quarkus application that demonstrates BPMN process execution using the EYEData BPMS process engine.
 
 ## What's included
 
@@ -81,7 +81,7 @@ This application is configured for Kubernetes deployment using Quarkus's built-i
 
 1. **Create kind cluster (if not exists):**
    ```bash
-   kind create cluster --name cibseven-local
+   kind create cluster --name eyedata-local
    ```
 
 2. **Build and deploy to Kubernetes:**
@@ -97,7 +97,7 @@ This application is configured for Kubernetes deployment using Quarkus's built-i
 
 3. **Load image into kind cluster:**
    ```bash
-   kind load docker-image cibseven/quarkus-motor-example:latest --name cibseven-local
+   kind load docker-image eyedata/quarkus-motor-example:latest --name eyedata-local
    kubectl rollout restart deployment motor
    ```
 
@@ -144,7 +144,7 @@ kubectl delete deployment,service -l app.kubernetes.io/name=motor
 
 To delete the kind cluster:
 ```bash
-kind delete cluster --name cibseven-local
+kind delete cluster --name eyedata-local
 ```
 
 ## Process Details

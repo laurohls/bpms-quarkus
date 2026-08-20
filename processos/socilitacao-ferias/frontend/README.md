@@ -1,4 +1,4 @@
-# CIB seven Process Launcher
+# EYEData Process Launcher
 
 Frontend React + TypeScript para iniciar uma instância do processo `process` no motor Quarkus.
 

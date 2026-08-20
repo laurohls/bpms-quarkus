@@ -1,6 +1,6 @@
-# CIB seven Quarkus Examples
+# EYEData BPMS Quarkus Examples
 
-This repository contains examples demonstrating how to use CIB seven process engine with Quarkus framework.
+This repository contains examples demonstrating how to use the EYEData BPMS process engine with the Quarkus framework.
 
 ## Examples
 
@@ -35,4 +35,7 @@ See [motor/README.md](motor/README.md) for detailed instructions.
 
 This project is licensed under the Apache 2.0 License – see the [LICENSE](LICENSE) file for details.
 
-CIB seven uses and includes third-party dependencies published under various licenses. By downloading and using CIB seven artifacts, you agree to their terms and conditions. Refer to https://docs.cibseven.org/manual/latest/introduction/third-party-libraries/ for an overview of third-party libraries and particularly important third-party licenses we want to make you aware of.
+EYEData BPMS uses third-party dependencies published under various licenses. By downloading and using these artifacts, you agree to their terms and conditions.
+cd C:\Projetos\Pessoal\bpms-quarkus\motor
+# se o quarkus:dev estiver aberto, pare com Ctrl+C
+mvn clean quarkus:dev -Dquarkus.http.port=81 -Ddebug=5005
