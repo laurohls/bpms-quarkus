@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.cibseven</groupId>
+        <artifactId>cibseven-quarkus-examples</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>starter</artifactId>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.cibseven.bpm</groupId>
+            <artifactId>cibseven-engine</artifactId>
+            <version>${cibseven.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.cibseven.spin</groupId>
+            <artifactId>cibseven-spin-core</artifactId>
+            <version>${cibseven.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.cibseven.bpm.quarkus</groupId>
+            <artifactId>cibseven-bpm-quarkus-engine</artifactId>
+            <version>${cibseven.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-rest-jackson</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-jdbc-h2</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-junit5</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-kubernetes</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-container-image-jib</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <profiles>
+        <profile>
+            <id>kind-deploy</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.1.0</version>
+                        <executions>
+                            <execution>
+                                <id>load-image</id>
+                                <phase>install</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>kind</executable>
+                                    <arguments>
+                                        <argument>load</argument>
+                                        <argument>docker-image</argument>
+                                        <argument>cibseven/quarkus-starter-example:latest</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <build>
+        <extensions>
+            <extension>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+                <version>${quarkus.platform.version}</version>
+            </extension>
+        </extensions>
+        <plugins>
+            <plugin>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-maven-plugin</artifactId>
+                <version>${quarkus.platform.version}</version>
+                <configuration>
+                    <enforceBuildGoal>false</enforceBuildGoal>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>build</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <repositories>
+		<repository>
+			<id>maven-central</id>
+			<name>Maven Central</name>
+			<url>https://repo1.maven.org/maven2</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+		<repository>
+		<!-- Required for local builds by community users on master branch -->
+			<id>mvn-cibseven-public</id>
+			<name>CIB seven Public Repository</name>
+			<url>https://artifacts.cibseven.org/repository/public</url>
+			</repository>
+		<repository>
+		<!-- Required for local builds by developers on maintainance branches -->
+			<id>mvn-cibseven-snapshots</id>
+			<name>CIB seven Snapshots repository</name>
+			<url>https://artifacts.cibseven.org/repository/snapshots</url>
+		</repository>
+	</repositories>
+
+</project>

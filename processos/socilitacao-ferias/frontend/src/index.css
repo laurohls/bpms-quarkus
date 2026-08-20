@@ -1,0 +1,23 @@
+:root {
+  font-family: 'Open Sans', system-ui, sans-serif;
+  color: #1a2332;
+  background: #f4f7f6;
+  font-synthesis: none;
+  --font-heading: 'Nunito Sans', 'Open Sans', system-ui, sans-serif;
+  --font-body: 'Open Sans', system-ui, sans-serif;
+  --ms-primary: #004f9f;
+  --ms-navy: #0a192f;
+  --ms-workspace: #f4f7f6;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--ms-workspace);
+  font-family: var(--font-body);
+}
+h1, h2, h3, h4, .brand strong {
+  font-family: var(--font-heading);
+}
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
