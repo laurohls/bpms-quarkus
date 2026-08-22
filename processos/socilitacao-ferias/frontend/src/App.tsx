@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useNavigate } from 'react-router-dom'
 import {
   Sidebar,
   PageHeader,
@@ -29,11 +29,13 @@ import TaskListView from './components/views/TaskListView'
 import TaskDetailView from './components/views/TaskDetailView'
 import MinhasSolicitacoesView from './components/views/MinhasSolicitacoesView'
 import ProcessosView from './components/views/ProcessosView'
+import AnalisarFeriasView from './components/views/AnalisarFeriasView'
 
 // Import de formulários
 import AnalisarSolicitacaoForm from './components/forms/AnalisarSolicitacaoForm'
 import ValidarGestorForm from './components/forms/ValidarGestorForm'
 import CancelarFeriasForm from './components/forms/CancelarFeriasForm'
+import ConsultarRespostaForm from './components/forms/ConsultarRespostaForm'
 
 const COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   // Views
@@ -42,26 +44,33 @@ const COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   TaskDetailView,
   MinhasSolicitacoesView,
   ProcessosView,
+  AnalisarFeriasView,
   
   // Forms
   AnalisarSolicitacaoForm,
   ValidarGestorForm,
   CancelarFeriasForm,
+  ConsultarRespostaForm,
 }
 
 function AppLayout({ routes }: { routes: ProjectRoutes }) {
-  const menuItems = buildMenuFromRoutes(routes.routes, routes.basePath)
+  const navigate = useNavigate()
 
   return (
     <>
       <div className="app-shell">
         <Sidebar>
           <span className="nav-label">Menu</span>
-          {menuItems.map((item: any) => (
-            <a key={item.path} href={item.path} className="nav-item">
-              <span className="nav-icon">{item.icon}</span>
-              {item.name}
-            </a>
+          {routes.routes.map((route: any) => (
+            <button
+              key={route.path}
+              onClick={() => navigate('/' + route.path)}
+              className="nav-item"
+              style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', width: '100%', textAlign: 'left' }}
+            >
+              <span className="nav-icon">{route.icon}</span>
+              {route.name}
+            </button>
           ))}
         </Sidebar>
 
@@ -85,7 +94,10 @@ function AppLayout({ routes }: { routes: ProjectRoutes }) {
                   console.warn(`Componente ${route.component} não encontrado`)
                   return null
                 }
-                return <Route key={route.path} path={route.path} element={<Component />} />
+                // Adicionar / ao início da rota se não tiver
+                const routePath = route.path.startsWith('/') ? route.path : '/' + route.path
+                
+                return <Route key={route.path} path={routePath} element={<Component />} />
               })}
             </Routes>
           </div>

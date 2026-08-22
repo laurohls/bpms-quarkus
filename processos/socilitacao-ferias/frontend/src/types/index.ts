@@ -27,6 +27,21 @@ export type VacationRequest = {
   processInstanceId?: string
 }
 
+export type SolicitacaoFerias = {
+  id: string
+  nomeFuncionario: string
+  emailFuncionario: string
+  matricula: string
+  departamento: string
+  dataInicio: string
+  dataFim: string
+  diasSolicitados: number
+  motivo?: string
+  status: 'solicitado' | 'pendente-gestor' | 'pendente-rh' | 'aprovado' | 'rejeitado'
+  dataSolicitacao: string
+  processInstanceId?: string
+}
+
 export type Task = {
   id: string
   name: string
@@ -89,6 +104,15 @@ export type RhAnalysisData = {
   observacoes: string
   analisadoPor?: string
   dataAnalise?: string
+}
+
+export type EmployeeResponseData = {
+  parecer: 'aprovado' | 'rejeitado' | 'condicional'
+  saldoDisponivel: number
+  diasSolicitados: number
+  observacoes?: string
+  respondidoEm: string
+  validadoEm?: string
 }
 
 export type GestorValidationData = {

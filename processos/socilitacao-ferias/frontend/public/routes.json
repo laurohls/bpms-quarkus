@@ -3,31 +3,37 @@
   "routes": [
     {
       "name": "Atividades",
-      "path": "/atividades",
+      "path": "atividades",
       "component": "TaskListView",
       "icon": "◈"
     },
     {
+      "name": "Analisar Férias",
+      "path": "analisar",
+      "component": "AnalisarFeriasView",
+      "icon": "✏"
+    },
+    {
       "name": "Nova Solicitação",
-      "path": "/solicitar",
+      "path": "solicitar",
       "component": "SolicitarFeriasView",
       "icon": "＋"
     },
     {
       "name": "Minhas Respostas",
-      "path": "/minhas-respostas",
+      "path": "minhas-respostas",
       "component": "MinhasSolicitacoesView",
       "icon": "✓"
     },
     {
       "name": "Processos BPMN",
-      "path": "/processos",
+      "path": "processos",
       "component": "ProcessosView",
       "icon": "⌘"
     },
     {
       "name": "_tarefa",
-      "path": "/tarefa/:id",
+      "path": "tarefa/:id",
       "component": "TaskDetailView",
       "icon": "_"
     }
