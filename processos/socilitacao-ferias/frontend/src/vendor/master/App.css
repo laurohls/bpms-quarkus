@@ -1,0 +1,355 @@
+/* ============================================================
+   LAYOUT MASTER STYLESHEET
+   
+   This file defines the standard layout for all BPMS frontends.
+   Projects can extend these styles without modifying this base.
+   ============================================================ */
+
+/* App Shell - Main Container */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  background: var(--bpms-content);
+}
+
+/* ============================================================
+   SIDEBAR STYLING
+   ============================================================ */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 260px;
+  flex-shrink: 0;
+  padding: 22px 14px 18px;
+  background: var(--bpms-navy);
+  color: var(--bpms-white);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* Sidebar Top Section */
+.sidebar-top {
+  display: grid;
+  gap: 14px;
+  padding: 0 6px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 18px;
+}
+
+/* Brand Section */
+.sidebar .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+}
+
+.brand-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--bpms-blue), var(--bpms-blue-bright));
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(0, 79, 159, 0.3);
+}
+
+.sidebar .brand strong {
+  color: #fff;
+  font-size: 14px;
+}
+
+.sidebar .brand small {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+}
+
+/* Sidebar Navigation */
+.sidebar-nav {
+  display: grid;
+  gap: 4px;
+  padding: 0 2px;
+}
+
+.nav-label {
+  padding: 0 8px 8px;
+  color: rgba(255, 255, 255, 0.45);
+  font: 10px 'DM Mono', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sidebar .nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar .nav-item .nav-icon {
+  width: 18px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+}
+
+.sidebar .nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.sidebar .nav-item.active {
+  background: var(--bpms-blue);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 79, 159, 0.3);
+}
+
+.sidebar .nav-item.active .nav-icon {
+  color: #fff;
+}
+
+/* Sidebar Bottom - User Section */
+.sidebar-bottom {
+  margin-top: auto;
+  display: grid;
+  gap: 12px;
+  padding: 16px 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 18px;
+}
+
+/* User Card */
+.user-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar .user-avatar {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--bpms-blue);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.user-info strong {
+  display: block;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.user-info small {
+  display: block;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+}
+
+/* User Switch Selector */
+.user-switch {
+  display: grid;
+  gap: 6px;
+}
+
+.user-switch span {
+  color: rgba(255, 255, 255, 0.5);
+  font: 10px 'DM Mono', monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.user-switch select {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font-size: 11px;
+}
+
+.user-switch select option {
+  color: #1a2332;
+}
+
+/* ============================================================
+   MAIN CONTENT AREA
+   ============================================================ */
+
+.main-content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  padding: 0 5vw 50px;
+  width: 100%;
+  min-width: 100%;
+}
+
+/* Page Header */
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  min-height: 168px;
+  padding: 35px 0 32px;
+  border-bottom: 1px solid var(--bpms-line);
+}
+
+.kicker {
+  color: #89958c;
+  font: 500 10px 'DM Mono', monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.page-header h1 {
+  margin: 12px 0 0;
+  font-size: clamp(2rem, 4vw, 3.65rem);
+  line-height: 1;
+  letter-spacing: -0.07em;
+  color: var(--bpms-text);
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding-bottom: 4px;
+  color: #738077;
+  font: 10px 'DM Mono', monospace;
+}
+
+.online-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #71bb4c;
+  box-shadow: 0 0 0 4px #e0f0d7;
+}
+
+/* ============================================================
+   FOOTER STYLING
+   ============================================================ */
+
+.app-footer {
+  background: var(--bpms-navy);
+  color: #fff;
+  padding: 40px 5vw;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  margin-top: auto;
+  width: 100%;
+}
+
+.app-footer-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 40px;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-brand strong {
+  color: #fff;
+  font-size: 14px;
+}
+
+.footer-brand small {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  display: block;
+}
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .app-shell {
+    flex-direction: column;
+  }
+
+  .main-content {
+    padding: 0 20px 50px;
+  }
+
+  .page-header {
+    min-height: auto;
+    flex-direction: column;
+  }
+
+  .page-header h1 {
+    font-size: 1.8rem;
+  }
+}
+
+/* ============================================================
+   SCROLLBAR STYLING (Optional)
+   ============================================================ */
+
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
