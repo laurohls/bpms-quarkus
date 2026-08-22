@@ -10,6 +10,9 @@ export type VacationFormData = {
   reason: string
   departamento?: string
   cargo?: string
+  // Regras BPMN - Formulario 1
+  abonoPecuniario?: boolean
+  adiantamento13?: boolean
 }
 
 export type VacationRequest = {

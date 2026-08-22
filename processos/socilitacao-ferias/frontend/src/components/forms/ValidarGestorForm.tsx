@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react'
-import { useApi } from 'bpms-frontend-master'
+import { taskService } from 'bpms-frontend-master'
 import type { GestorValidationData } from '../../types'
 
 interface ValidarGestorFormProps {
@@ -30,8 +30,6 @@ export default function ValidarGestorForm({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
-
-  const { post } = useApi()
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -62,10 +60,17 @@ export default function ValidarGestorForm({
 
     try {
       setLoading(true)
-      await post(`/api/ferias/tasks/${taskId}/complete`, {
-        taskId,
+      // BPMN: parecerGestor Aprovado/Reprovado + motivoRecusa (obrigatorio se Reprovado)
+      const parecerGestor = formData.viabilidade === 'nao-viavel' ? 'Reprovado' : 'Aprovado'
+      await taskService.complete(taskId, {
+        parecerGestor,
+        motivoRecusa: formData.observacoes,
+        gestorViabilidade: formData.viabilidade,
+        gestorImpacto: formData.impactoOperacional,
+        gestorEquipeDisponivel: formData.equipeDisponivel,
+        gestorSubstituicao: formData.substituicaoIdentificada,
+        gestorObservacoes: formData.observacoes,
         solicitacaoId,
-        validation: formData,
       })
 
       setSuccess(true)

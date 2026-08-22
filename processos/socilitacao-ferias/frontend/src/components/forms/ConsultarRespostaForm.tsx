@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useApi } from 'bpms-frontend-master'
+import { taskService } from 'bpms-frontend-master'
 import type { EmployeeResponseData } from '../../types'
 
 interface ConsultarRespostaFormProps {
@@ -25,15 +25,28 @@ export default function ConsultarRespostaForm({
   const [hasAcknowledged, setHasAcknowledged] = useState(false)
   const [submitting, setSubmitting] = useState(false)
 
-  const { get, post } = useApi()
-
-  // Carregar dados da resposta do RH
+  // Carregar resposta via lib: GET /task/{id} -> TaskDetails.processVariables (rhDecision/rhResponse)
   useEffect(() => {
     const fetchResponseData = async () => {
       try {
         setLoading(true)
-        const data = await get(`/api/ferias/tasks/${taskId}/resposta`)
-        setResponseData(data)
+        const details = await taskService.getTask(taskId)
+        if (!details) throw new Error('Tarefa não encontrada')
+        const vars = details.processVariables as Record<string, unknown>
+        // Mapeia rhDecision do BPMN para parecer da UI
+        const rhDecision = String(vars.rhDecision ?? '')
+        const parecerMap: Record<string, EmployeeResponseData['parecer']> = {
+          APPROVED: 'aprovado',
+          REJECTED: 'rejeitado',
+          ADJUSTMENT_REQUIRED: 'condicional',
+        }
+        setResponseData({
+          parecer: parecerMap[rhDecision] ?? 'aprovado',
+          saldoDisponivel: Number(vars.saldoDisponivelAnual ?? vars.saldoDisponivel ?? 0),
+          diasSolicitados: Number(vars.days ?? vars.diasSolicitados ?? 0),
+          observacoes: String(vars.rhResponse ?? vars.observacoes ?? ''),
+          respondidoEm: String(vars.responseTime ?? new Date().toISOString()),
+        })
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar resposta')
       } finally {
@@ -42,7 +55,7 @@ export default function ConsultarRespostaForm({
     }
 
     fetchResponseData()
-  }, [taskId, get])
+  }, [taskId])
 
   const handleAcknowledge = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -54,10 +67,11 @@ export default function ConsultarRespostaForm({
 
     try {
       setSubmitting(true)
-      await post(`/api/ferias/tasks/${taskId}/acknowledge`, {
-        taskId,
-        solicitacaoId,
+      // Lib: EmployeeResponseTask complete -> confirma recebimento
+      await taskService.complete(taskId, {
+        acknowledged: true,
         acknowledgedAt: new Date().toISOString(),
+        solicitacaoId,
       })
 
       onSuccess?.()

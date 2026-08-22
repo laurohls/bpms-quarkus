@@ -5,24 +5,22 @@
  */
 
 import { useEffect, useState } from 'react'
-import { useApi } from 'bpms-frontend-master'
 import TaskCard from '../shared/TaskCard'
-import type { Task } from '../../types'
+import type { TaskSummary } from 'bpms-frontend-master'
+import { taskService } from 'bpms-frontend-master'
 
 export default function TaskListView() {
-  const [tasks, setTasks] = useState<Task[]>([])
+  const [tasks, setTasks] = useState<TaskSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'available' | 'claimed'>('all')
-
-  const { get } = useApi()
 
   useEffect(() => {
     const fetchTasks = async () => {
       try {
         setLoading(true)
-        const response = await get('/api/ferias/tasks')
-        const data = response.data || []
+        // Usa biblioteca compartilhada (modulos/frontend) -> motor /task/process/{key}
+        const data = await taskService.listTasksByProcess('process')
         setTasks(Array.isArray(data) ? data : [])
         setError(null)
       } catch (err) {
@@ -34,7 +32,7 @@ export default function TaskListView() {
     }
 
     fetchTasks()
-  }, [get])
+  }, [])
 
   const filteredTasks = tasks.filter((task) => {
     if (filter === 'available') return task.assignee === null

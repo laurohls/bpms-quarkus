@@ -1,0 +1,23 @@
+{
+  "basePath": "/",
+  "routes": [
+    {
+      "name": "Início",
+      "path": "/",
+      "component": "DashboardView",
+      "icon": "⌂"
+    },
+    {
+      "name": "Minhas Tarefas",
+      "path": "/tarefas",
+      "component": "TaskListView",
+      "icon": "✓"
+    },
+    {
+      "name": "Processos",
+      "path": "/processos",
+      "component": "ProcessosView",
+      "icon": "⌘"
+    }
+  ]
+}

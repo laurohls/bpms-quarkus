@@ -1,11 +1,10 @@
 /**
  * AnalisarSolicitacaoForm.tsx
- * Formulário para RH analisar e aprovar/rejeitar solicitação de férias
- * Verifica saldo, políticas e gera parecer
+ * RH analisa solicitacao - usa lib compartilhada taskService (motor /task/{id}/complete)
  */
 
 import { useState } from 'react'
-import { useApi } from 'bpms-frontend-master'
+import { taskService } from 'bpms-frontend-master'
 import type { RhAnalysisData } from '../../types'
 
 interface AnalisarSolicitacaoFormProps {
@@ -16,7 +15,6 @@ interface AnalisarSolicitacaoFormProps {
 
 export default function AnalisarSolicitacaoForm({
   taskId,
-  solicitacaoId,
   onSuccess,
 }: AnalisarSolicitacaoFormProps) {
   const [formData, setFormData] = useState<RhAnalysisData>({
@@ -31,44 +29,40 @@ export default function AnalisarSolicitacaoForm({
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
 
-  const { post } = useApi()
-
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
-
     if (!formData.parecer || formData.parecer === 'pendente') {
       newErrors.parecer = 'Parecer é obrigatório'
     }
-
     if (formData.saldoDisponivelAnual < 0) {
       newErrors.saldoDisponivelAnual = 'Saldo não pode ser negativo'
     }
-
     if (formData.parecer === 'rejeitado' && !formData.observacoes.trim()) {
       newErrors.observacoes = 'Observações são obrigatórias para rejeição'
     }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!validate()) return
-
     try {
       setLoading(true)
-      await post(`/api/ferias/tasks/${taskId}/complete`, {
-        taskId,
-        solicitacaoId,
-        analysis: formData,
+      // Mapeia parecer da UI para enum do BPMN (RHReviewTask formData)
+      const rhDecisionMap: Record<string, string> = {
+        aprovado: 'APPROVED',
+        rejeitado: 'REJECTED',
+        condicional: 'ADJUSTMENT_REQUIRED',
+      }
+      await taskService.complete(taskId, {
+        rhDecision: rhDecisionMap[formData.parecer] ?? formData.parecer,
+        rhResponse: formData.observacoes,
+        saldoDisponivelAnual: formData.saldoDisponivelAnual,
+        diasSolicitados: formData.diasSolicitados,
       })
-
       setSuccess(true)
-      setTimeout(() => {
-        onSuccess?.()
-      }, 2000)
+      setTimeout(() => onSuccess?.(), 1200)
     } catch (error) {
       setErrors({
         submit: error instanceof Error ? error.message : 'Erro ao submeter análise',
@@ -96,21 +90,19 @@ export default function AnalisarSolicitacaoForm({
       )}
 
       <div className="form-section">
-        <h3 className="form-section-title">Análise RH</h3>
+        <h3 className="form-section-title">Análise RH (lib: taskService.complete)</h3>
 
         <div className="form-group">
           <label className="form-label required">Parecer</label>
           <select
             className="form-select"
             value={formData.parecer}
-            onChange={(e) =>
-              setFormData({ ...formData, parecer: e.target.value })
-            }
+            onChange={(e) => setFormData({ ...formData, parecer: e.target.value as RhAnalysisData['parecer'] })}
           >
             <option value="pendente">-- Selecione --</option>
-            <option value="aprovado">Aprovar</option>
-            <option value="rejeitado">Rejeitar</option>
-            <option value="condicional">Aprovar com Condições</option>
+            <option value="aprovado">Aprovar (APPROVED)</option>
+            <option value="rejeitado">Rejeitar (REJECTED)</option>
+            <option value="condicional">Aprovar com Condições (ADJUSTMENT_REQUIRED)</option>
           </select>
           {errors.parecer && <div className="form-error">{errors.parecer}</div>}
         </div>
@@ -122,88 +114,31 @@ export default function AnalisarSolicitacaoForm({
             className="form-input"
             value={formData.saldoDisponivelAnual}
             onChange={(e) =>
-              setFormData({
-                ...formData,
-                saldoDisponivelAnual: parseFloat(e.target.value) || 0,
-              })
+              setFormData({ ...formData, saldoDisponivelAnual: parseFloat(e.target.value) || 0 })
             }
             placeholder="Ex: 15"
           />
-          {errors.saldoDisponivelAnual && (
-            <div className="form-error">{errors.saldoDisponivelAnual}</div>
-          )}
+          {errors.saldoDisponivelAnual && <div className="form-error">{errors.saldoDisponivelAnual}</div>}
         </div>
 
         <div className="form-group">
-          <label className="form-label">Dias Solicitados</label>
-          <input
-            type="number"
-            className="form-input"
-            value={formData.diasSolicitados}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                diasSolicitados: parseFloat(e.target.value) || 0,
-              })
-            }
-            placeholder="Ex: 10"
-            disabled
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">
-            Dias restantes após período ({formData.saldoDisponivelAnual - formData.diasSolicitados} dias)
-          </label>
-          <input
-            type="number"
-            className="form-input"
-            value={formData.diasAposPeriodo}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                diasAposPeriodo: parseFloat(e.target.value) || 0,
-              })
-            }
-            disabled
-          />
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">
-            Observações
-            {formData.parecer === 'rejeitado' && (
-              <span className="required-mark"> (obrigatório em caso de rejeição)</span>
-            )}
-          </label>
+          <label className="form-label">Observações {formData.parecer === 'rejeitado' && <span className="required-mark">(obrigatório)</span>}</label>
           <textarea
             className="form-textarea"
             value={formData.observacoes}
-            onChange={(e) =>
-              setFormData({ ...formData, observacoes: e.target.value })
-            }
-            placeholder="Digite seu parecer, justificativa ou observações..."
+            onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+            placeholder="Parecer será enviado como rhResponse para motor /task/{id}/complete"
             rows={5}
           />
-          {errors.observacoes && (
-            <div className="form-error">{errors.observacoes}</div>
-          )}
+          {errors.observacoes && <div className="form-error">{errors.observacoes}</div>}
         </div>
       </div>
 
       <div className="form-button-group">
-        <button
-          type="button"
-          className="form-button secondary"
-          onClick={() => window.history.back()}
-        >
+        <button type="button" className="form-button secondary" onClick={() => window.history.back()}>
           Cancelar
         </button>
-        <button
-          type="submit"
-          className="form-button primary"
-          disabled={loading}
-        >
+        <button type="submit" className="form-button primary" disabled={loading}>
           {loading ? 'Enviando...' : 'Enviar Análise'}
         </button>
       </div>

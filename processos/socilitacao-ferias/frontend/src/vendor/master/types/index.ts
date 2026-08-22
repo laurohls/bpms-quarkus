@@ -29,6 +29,19 @@ export type RouteConfig = {
 export type ProjectRoutes = {
   basePath: string
   routes: RouteConfig[]
+  projectId?: string
+  projectName?: string
+}
+
+export type MenuSection = {
+  title: string
+  basePath: string
+  items: { name: string; path: string; icon?: string; children?: { name: string; path: string; icon?: string }[] }[]
+}
+
+export type MixedMenu = {
+  master: MenuSection
+  projects: MenuSection[]
 }
 
 // ============================================================

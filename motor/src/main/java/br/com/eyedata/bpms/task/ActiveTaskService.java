@@ -25,4 +25,17 @@ public class ActiveTaskService {
             .map(TaskSummary::from)
             .collect(Collectors.toList());
     }
+
+    public List<TaskSummary> findActiveTasksByProcess(String processDefinitionKey) {
+        return taskService.createTaskQuery()
+            .active()
+            .processDefinitionKey(processDefinitionKey)
+            .initializeFormKeys()
+            .orderByTaskCreateTime()
+            .desc()
+            .list()
+            .stream()
+            .map(TaskSummary::from)
+            .collect(Collectors.toList());
+    }
 }

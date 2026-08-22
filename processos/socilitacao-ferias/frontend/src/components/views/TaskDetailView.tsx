@@ -1,55 +1,55 @@
 /**
  * TaskDetailView.tsx
- * Página que mostra os detalhes de uma atividade específica
- * Permite ao usuário reivindicar (claim), rejeitar ou completar a atividade
+ * Detalhe de tarefa - usa lib compartilhada modulos/frontend (taskService)
  */
 
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useApi } from 'bpms-frontend-master'
-import type { TaskDetails } from '../../types'
+import { taskService, type TaskDetails } from 'bpms-frontend-master'
+import { useCurrentUser } from 'bpms-frontend-master'
 
 export default function TaskDetailView() {
-  const { taskId } = useParams<{ taskId: string }>()
+  const { id: taskId } = useParams<{ id: string }>()
+  // Compatibilidade com rota legacy /tarefa/:id e /tarefa/:taskId
+  const { taskId: altId } = useParams<{ taskId: string }>()
+  const resolvedId = taskId ?? altId
   const navigate = useNavigate()
-  const [task, setTask] = useState<TaskDetails | null>(null)
+  const { user } = useCurrentUser()
+  const [detail, setDetail] = useState<TaskDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
-  const { get, post } = useApi()
-
   useEffect(() => {
-    if (!taskId) {
+    if (!resolvedId) {
       setError('ID da tarefa não fornecido')
       setLoading(false)
       return
     }
-
     const fetchTask = async () => {
       try {
         setLoading(true)
-        const response = await get(`/api/ferias/tasks/${taskId}`)
-        setTask(response.data || null)
+        const data = await taskService.getTask(resolvedId)
+        if (!data) throw new Error('Tarefa não encontrada')
+        setDetail(data)
         setError(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar tarefa')
-        setTask(null)
+        setDetail(null)
       } finally {
         setLoading(false)
       }
     }
-
     fetchTask()
-  }, [taskId, get])
+  }, [resolvedId])
 
   const handleClaim = async () => {
-    if (!taskId) return
-
+    if (!resolvedId) return
     try {
       setSubmitting(true)
-      await post(`/api/ferias/tasks/${taskId}/claim`, {})
-      setTask((prev) => (prev ? { ...prev, assignee: 'self' } : null))
+      await taskService.claim(resolvedId, user.id)
+      const refreshed = await taskService.getTask(resolvedId)
+      setDetail(refreshed)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao reivindicar tarefa')
     } finally {
@@ -58,12 +58,12 @@ export default function TaskDetailView() {
   }
 
   const handleUnclaim = async () => {
-    if (!taskId) return
-
+    if (!resolvedId) return
     try {
       setSubmitting(true)
-      await post(`/api/ferias/tasks/${taskId}/unclaim`, {})
-      setTask((prev) => (prev ? { ...prev, assignee: null } : null))
+      await taskService.unclaim(resolvedId)
+      const refreshed = await taskService.getTask(resolvedId)
+      setDetail(refreshed)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao desistir da tarefa')
     } finally {
@@ -72,12 +72,12 @@ export default function TaskDetailView() {
   }
 
   const handleComplete = async () => {
-    if (!taskId) return
-
+    if (!resolvedId) return
     try {
       setSubmitting(true)
-      await post(`/api/ferias/tasks/${taskId}/complete`, {})
-      navigate('/tarefas', { replace: true })
+      // Lib: complete envia variables para motor; RH usa rhDecision/rhResponse
+      await taskService.complete(resolvedId, { completedBy: user.id })
+      navigate('/atividades', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro ao completar tarefa')
       setSubmitting(false)
@@ -93,34 +93,31 @@ export default function TaskDetailView() {
     )
   }
 
-  if (error || !task) {
+  if (error || !detail) {
     return (
       <div className="error-container">
         <div className="error-message">
           <strong>Erro:</strong>
           <div className="error-details">{error || 'Tarefa não encontrada'}</div>
         </div>
-        <button
-          className="form-button primary"
-          onClick={() => navigate('/tarefas')}
-        >
-          Voltar para Tarefas
+        <button className="form-button primary" onClick={() => navigate('/atividades')}>
+          Voltar para Atividades
         </button>
       </div>
     )
   }
 
+  const task = detail.task
+  const vars = detail.processVariables as Record<string, unknown>
+
   return (
     <div className="page-container">
       <div className="page-header">
-        <button
-          className="back-button"
-          onClick={() => navigate('/tarefas')}
-        >
+        <button className="back-button" onClick={() => navigate('/atividades')}>
           ← Voltar
         </button>
         <h1>{task.name}</h1>
-        <span className={`status-badge ${task.status}`}>{task.status}</span>
+        <span className="status-badge">{task.taskDefinitionKey}</span>
       </div>
 
       {error && (
@@ -131,81 +128,44 @@ export default function TaskDetailView() {
 
       <div className="form-section">
         <h2 className="form-section-title">Informações da Tarefa</h2>
-
         <div className="form-group">
           <label className="form-label">ID</label>
           <p>{task.id}</p>
         </div>
-
         <div className="form-group">
-          <label className="form-label">Descrição</label>
-          <p>{task.description || '-'}</p>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label">Atribuído para</label>
+          <label className="form-label">Assignee</label>
           <p>{task.assignee || 'Não atribuído'}</p>
         </div>
-
         <div className="form-group">
-          <label className="form-label">Data de Criação</label>
-          <p>
-            {task.createdAt
-              ? new Date(task.createdAt).toLocaleDateString('pt-BR', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })
-              : '-'}
-          </p>
+          <label className="form-label">ProcessInstance</label>
+          <p>{detail.processInstance?.id ?? task.processInstanceId}</p>
         </div>
-
-        {task.dueDate && (
-          <div className="form-group">
-            <label className="form-label">Data de Vencimento</label>
-            <p>
-              {new Date(task.dueDate).toLocaleDateString('pt-BR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </p>
-          </div>
-        )}
+        <div className="form-group">
+          <label className="form-label">Criação</label>
+          <p>{new Date(task.createTime).toLocaleDateString('pt-BR')}</p>
+        </div>
       </div>
 
-      {task.data && Object.keys(task.data).length > 0 && (
+      {vars && Object.keys(vars).length > 0 && (
         <div className="form-section">
-          <h2 className="form-section-title">Dados da Solicitação</h2>
+          <h2 className="form-section-title">Variáveis do Processo</h2>
           <pre style={{ backgroundColor: '#f5f5f5', padding: '12px', borderRadius: '4px', overflow: 'auto' }}>
-            {JSON.stringify(task.data, null, 2)}
+            {JSON.stringify(vars, null, 2)}
           </pre>
         </div>
       )}
 
       <div className="form-button-group">
         {task.assignee === null ? (
-          <button
-            className="form-button primary"
-            onClick={handleClaim}
-            disabled={submitting}
-          >
+          <button className="form-button primary" onClick={handleClaim} disabled={submitting}>
             {submitting ? 'Reivindicando...' : 'Reivindicar Tarefa'}
           </button>
         ) : (
           <>
-            <button
-              className="form-button secondary"
-              onClick={handleUnclaim}
-              disabled={submitting}
-            >
+            <button className="form-button secondary" onClick={handleUnclaim} disabled={submitting}>
               {submitting ? 'Desistindo...' : 'Desistir'}
             </button>
-            <button
-              className="form-button primary"
-              onClick={handleComplete}
-              disabled={submitting}
-            >
+            <button className="form-button primary" onClick={handleComplete} disabled={submitting}>
               {submitting ? 'Completando...' : 'Completar Tarefa'}
             </button>
           </>

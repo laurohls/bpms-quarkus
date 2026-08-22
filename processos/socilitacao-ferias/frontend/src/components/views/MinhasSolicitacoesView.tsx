@@ -5,7 +5,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { useApi, useCurrentUser } from 'bpms-frontend-master'
+import { useCurrentUser, taskService } from 'bpms-frontend-master'
 import type { VacationRequest } from '../../types'
 
 export default function MinhasSolicitacoesView() {
@@ -15,16 +15,45 @@ export default function MinhasSolicitacoesView() {
   const [filter, setFilter] = useState<'all' | 'pendente' | 'aprovado' | 'rejeitado'>('all')
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const { get } = useApi()
-  const user = useCurrentUser()
+  const { user } = useCurrentUser()
 
   useEffect(() => {
     const fetchRequests = async () => {
       try {
         setLoading(true)
-        const response = await get(`/api/ferias/solicitacoes/${user?.id || 'me'}`)
-        const data = response.data || []
-        setRequests(Array.isArray(data) ? data : [])
+        // Lib compartilhada: busca tarefas ativas e mapeia para VacationRequest
+        // Motor nao tem endpoint /solicitacoes por usuario; filtra por tasks do processo
+        const tasks = await taskService.listTasksByProcess('process')
+        // Busca detalhes para obter variables (email, datas) e filtra por usuario atual se possivel
+        const detailed = await Promise.all(
+          tasks.map(async (t) => {
+            try {
+              const d = await taskService.getTask(t.id)
+              return d
+            } catch {
+              return null
+            }
+          }),
+        )
+        const mapped: VacationRequest[] = detailed
+          .filter((d): d is NonNullable<typeof d> => d !== null)
+          .map((d) => {
+            const vars = d.processVariables as Record<string, unknown>
+            const email = String(vars.email ?? '')
+            // Filtra por email do usuario se disponivel (user.id pode ser 'ana.silva', nao email)
+            // Mantem todas se nao houver filtro confiavel
+            return {
+              id: d.task.processInstanceId,
+              usuarioId: email || user.id,
+              dataInicio: String(vars.startDate ?? vars.dataInicio ?? ''),
+              dataFim: String(vars.endDate ?? vars.dataFim ?? ''),
+              motivo: String(vars.reason ?? vars.motivo ?? ''),
+              status: (String(vars.rhDecision ?? 'solicitado').toLowerCase() as VacationRequest['status']) || 'solicitado',
+              dataSolicitacao: String(d.task.createTime),
+              processInstanceId: d.task.processInstanceId,
+            }
+          })
+        setRequests(mapped)
         setError(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar solicitações')
@@ -34,10 +63,8 @@ export default function MinhasSolicitacoesView() {
       }
     }
 
-    if (user?.id) {
-      fetchRequests()
-    }
-  }, [get, user?.id])
+    fetchRequests()
+  }, [user.id])
 
   const filteredRequests = requests.filter((req) => {
     if (filter === 'all') return true

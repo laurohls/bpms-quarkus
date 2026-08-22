@@ -1,126 +1,104 @@
 /**
  * AnalisarFeriasView.tsx
- * View para RH analisar solicitações de férias em fila
- * Lista tarefas pendentes e fornece interface de análise
+ * View para RH analisar solicitacoes de ferias - usa lib compartilhada modulos/frontend
  */
 
 import { useState, useEffect } from 'react'
-import { useApi } from 'bpms-frontend-master'
+import { taskService, type TaskSummary, type TaskDetails } from 'bpms-frontend-master'
 import AnalisarSolicitacaoForm from '../forms/AnalisarSolicitacaoForm'
-import type { SolicitacaoFerias, Task } from '../../types'
-
-interface SolicitacaoComTask extends SolicitacaoFerias {
-  taskId: string
-  createdAt: string
-}
 
 export default function AnalisarFeriasView() {
-  const [tarefas, setTarefas] = useState<SolicitacaoComTask[]>([])
+  const [tasks, setTasks] = useState<TaskSummary[]>([])
+  const [selected, setSelected] = useState<TaskDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [filter, setFilter] = useState<'pendentes' | 'completas'>('pendentes')
 
-  const { get } = useApi()
-
-  // Carregar tarefas do RH
   useEffect(() => {
-    const fetchTarefas = async () => {
+    const fetchTasks = async () => {
       try {
         setLoading(true)
-        const data = await get('/api/ferias/tasks/rh')
-        setTarefas(data)
+        // Lib compartilhada: busca tarefas ativas do processo "process"
+        const data = await taskService.listTasksByProcess('process')
+        // Filtra apenas RHReviewTask (candidateGroups RH)
+        const rhTasks = data.filter((t) => t.taskDefinitionKey === 'RHReviewTask')
+        setTasks(rhTasks.length > 0 ? rhTasks : data)
+        setError(null)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar tarefas')
       } finally {
         setLoading(false)
       }
     }
+    fetchTasks()
+  }, [])
 
-    fetchTarefas()
-  }, [get])
+  const handleSelect = async (taskId: string) => {
+    try {
+      const details = await taskService.getTask(taskId)
+      setSelected(details)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao carregar detalhes')
+    }
+  }
 
-  const tarefasSelecionadas = tarefas.filter((t) => {
-    if (filter === 'pendentes') return !t.taskId // ou verificar status
-    return !!t.taskId
-  })
+  if (selected) {
+    const vars = selected.processVariables as Record<string, unknown>
+    return (
+      <div className="page-content">
+        <div className="task-detail">
+          <button
+            className="back-button"
+            onClick={() => setSelected(null)}
+            style={{ marginBottom: '20px', padding: '8px 16px' }}
+          >
+            ← Voltar para lista
+          </button>
 
-  if (selectedTaskId) {
-    const tarefa = tarefas.find((t) => t.taskId === selectedTaskId)
-    if (tarefa) {
-      return (
-        <div className="page-content">
-          <div className="task-detail">
-            <button
-              className="back-button"
-              onClick={() => setSelectedTaskId(null)}
-              style={{ marginBottom: '20px', padding: '8px 16px' }}
-            >
-              ← Voltar para lista
-            </button>
-
-            {/* Detalhes da Solicitação */}
-            <div className="form-section">
-              <h3 className="form-section-title">Dados da Solicitação</h3>
-
-              <div className="detail-grid">
-                <div className="detail-item">
-                  <label>Funcionário</label>
-                  <span>{tarefa.nomeFuncionario}</span>
-                </div>
-                <div className="detail-item">
-                  <label>Email</label>
-                  <span>{tarefa.emailFuncionario}</span>
-                </div>
-                <div className="detail-item">
-                  <label>Departamento</label>
-                  <span>{tarefa.departamento}</span>
-                </div>
-                <div className="detail-item">
-                  <label>Matrícula</label>
-                  <span>{tarefa.matricula}</span>
-                </div>
+          <div className="form-section">
+            <h3 className="form-section-title">Dados da Solicitação</h3>
+            <div className="detail-grid">
+              <div className="detail-item">
+                <label>Funcionário</label>
+                <span>{String(vars.employeeName ?? vars.nome ?? '-')}</span>
               </div>
-
-              <div className="detail-grid" style={{ marginTop: '20px' }}>
-                <div className="detail-item">
-                  <label>Data Início</label>
-                  <span>{new Date(tarefa.dataInicio).toLocaleDateString('pt-BR')}</span>
-                </div>
-                <div className="detail-item">
-                  <label>Data Fim</label>
-                  <span>{new Date(tarefa.dataFim).toLocaleDateString('pt-BR')}</span>
-                </div>
-                <div className="detail-item">
-                  <label>Dias Solicitados</label>
-                  <span>{tarefa.diasSolicitados} dias</span>
-                </div>
+              <div className="detail-item">
+                <label>Email</label>
+                <span>{String(vars.email ?? '-')}</span>
               </div>
-
-              {tarefa.motivo && (
-                <div style={{ marginTop: '20px' }}>
-                  <label className="form-label">Motivo</label>
-                  <div className="form-static-textarea">{tarefa.motivo}</div>
-                </div>
-              )}
+              <div className="detail-item">
+                <label>Período</label>
+                <span>
+                  {String(vars.startDate ?? vars.dataInicio ?? '-')} até{' '}
+                  {String(vars.endDate ?? vars.dataFim ?? '-')}
+                </span>
+              </div>
+              <div className="detail-item">
+                <label>Dias</label>
+                <span>{String(vars.days ?? vars.dias ?? '-')}</span>
+              </div>
             </div>
+            {vars.reason && (
+              <div style={{ marginTop: '20px' }}>
+                <label className="form-label">Motivo</label>
+                <div className="form-static-textarea">{String(vars.reason)}</div>
+              </div>
+            )}
+          </div>
 
-            {/* Formulário de Análise */}
-            <div style={{ marginTop: '30px' }}>
-              <AnalisarSolicitacaoForm
-                taskId={selectedTaskId}
-                solicitacaoId={tarefa.id}
-                onSuccess={() => {
-                  setSelectedTaskId(null)
-                  // Recarregar tarefas
-                  window.location.reload()
-                }}
-              />
-            </div>
+          <div style={{ marginTop: '30px' }}>
+            <AnalisarSolicitacaoForm
+              taskId={selected.task.id}
+              solicitacaoId={selected.processInstance?.id ?? selected.task.processInstanceId}
+              onSuccess={() => {
+                setSelected(null)
+                window.location.reload()
+              }}
+            />
           </div>
         </div>
-      )
-    }
+      </div>
+    )
   }
 
   return (
@@ -133,7 +111,6 @@ export default function AnalisarFeriasView() {
         </div>
       )}
 
-      {/* Filtro */}
       <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
         <button
           className={`filter-button ${filter === 'pendentes' ? 'active' : ''}`}
@@ -147,7 +124,7 @@ export default function AnalisarFeriasView() {
             cursor: 'pointer',
           }}
         >
-          Pendentes ({tarefas.filter((t) => !t.taskId).length})
+          Pendentes ({tasks.length})
         </button>
         <button
           className={`filter-button ${filter === 'completas' ? 'active' : ''}`}
@@ -161,76 +138,57 @@ export default function AnalisarFeriasView() {
             cursor: 'pointer',
           }}
         >
-          Analisadas ({tarefas.filter((t) => t.taskId).length})
+          Analisadas (0)
         </button>
       </div>
 
-      {/* Lista de Tarefas */}
       {loading ? (
         <div className="loading-spinner" style={{ textAlign: 'center', padding: '40px' }} />
-      ) : tarefasSelecionadas.length === 0 ? (
+      ) : tasks.length === 0 ? (
         <div className="info-message" style={{ textAlign: 'center', padding: '40px' }}>
-          <strong>ℹ️ Nenhuma solicitação {filter === 'pendentes' ? 'pendente' : 'analisada'}</strong>
+          <strong>ℹ️ Nenhuma solicitação pendente</strong>
           <p>Volte mais tarde para verificar novas solicitações</p>
         </div>
       ) : (
         <div className="tasks-grid" style={{ display: 'grid', gap: '12px' }}>
-          {tarefasSelecionadas.map((tarefa) => (
+          {tasks.map((task) => (
             <div
-              key={tarefa.id}
+              key={task.id}
               className="task-card"
-              onClick={() => setSelectedTaskId(tarefa.taskId)}
+              onClick={() => handleSelect(task.id)}
               style={{
                 padding: '16px',
                 border: '1px solid #ddd',
                 borderRadius: '8px',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease',
                 backgroundColor: '#fff',
               }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget
-                el.style.backgroundColor = '#f9f9f9'
-                el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
-              }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget
-                el.style.backgroundColor = '#fff'
-                el.style.boxShadow = 'none'
-              }}
             >
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'start' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px' }}>
                 <div>
-                  <h4 style={{ margin: '0 0 8px 0', color: '#004f9f' }}>
-                    {tarefa.nomeFuncionario}
-                  </h4>
+                  <h4 style={{ margin: '0 0 8px 0', color: '#004f9f' }}>{task.name}</h4>
+                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#666' }}>ID: {task.id}</p>
                   <p style={{ margin: '4px 0', fontSize: '14px', color: '#666' }}>
-                    📧 {tarefa.emailFuncionario}
+                    Criado: {new Date(task.createTime).toLocaleDateString('pt-BR')}
                   </p>
-                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#666' }}>
-                    📅{' '}
-                    {new Date(tarefa.dataInicio).toLocaleDateString('pt-BR')} -{' '}
-                    {new Date(tarefa.dataFim).toLocaleDateString('pt-BR')}
-                  </p>
-                  <p style={{ margin: '4px 0', fontSize: '14px', color: '#666' }}>
-                    ⏱️ {tarefa.diasSolicitados} dias solicitados
+                  <p style={{ margin: '4px 0', fontSize: '12px', color: '#999' }}>
+                    {task.taskDefinitionKey}
                   </p>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      padding: '6px 12px',
-                      backgroundColor: '#fff3cd',
-                      color: '#856404',
-                      borderRadius: '4px',
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    PENDENTE
-                  </span>
-                </div>
+                <span
+                  style={{
+                    display: 'inline-block',
+                    padding: '6px 12px',
+                    backgroundColor: '#fff3cd',
+                    color: '#856404',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                    alignSelf: 'start',
+                  }}
+                >
+                  PENDENTE
+                </span>
               </div>
             </div>
           ))}

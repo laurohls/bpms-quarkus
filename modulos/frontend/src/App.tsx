@@ -23,17 +23,41 @@ export { CurrentUserProvider, useCurrentUser } from './contexts/UserContext'
 export type { CurrentUserCtx } from './contexts/UserContext'
 
 // Types
-export type { User, RouteConfig, ProjectRoutes, ApiResponse, PaginatedResponse } from './types'
+export type { User, RouteConfig, ProjectRoutes, MenuSection, MixedMenu, ApiResponse, PaginatedResponse } from './types'
+export type {
+  ProcessInstanceSummary,
+  CreateProcessRequest,
+  ProcessDefinitionSummary,
+  ActivityHistorySummary,
+  TaskSummary,
+  TaskDetails,
+  ProcessInstanceDetails,
+  ClaimTaskRequest,
+  CompleteTaskRequest,
+} from './types/bpms'
 
 // Services
 export { apiClient } from './services/api'
+export { motorClient } from './services/motorClient'
+export { processService } from './services/processService'
+export { taskService } from './services/taskService'
 
 // Hooks
 export { useApi, useMutation, useLocalStorage, useDebounce, usePrevious } from './hooks'
 
 // Utils
-export { loadProjectRoutes, buildMenuFromRoutes, flattenMenu } from './utils/routeLoader'
+export {
+  loadProjectRoutes,
+  buildMenuFromRoutes,
+  flattenMenu,
+  getMasterRoutes,
+  buildMenuSection,
+  buildMixedMenu,
+  loadMixedRoutes,
+  loadMasterAndProject,
+} from './utils/routeLoader'
 export type { MenuItem } from './utils/routeLoader'
+export { default as masterRoutes } from './config/masterRoutes.json'
 
 // ============================================================
 // CONSTANTS
@@ -48,77 +72,83 @@ export { BPMS_USERS } from './contexts/UserContext'
 
 import { Sidebar, PageHeader, AppFooter } from './components/Layout'
 import { CurrentUserProvider } from './contexts/UserContext'
+import { getMasterRoutes, buildMixedMenu } from './utils/routeLoader'
 import './App.css'
 
 export default function DemoApp() {
+  // Demo: menu misto Master + projeto exemplo (JSON)
+  const master = getMasterRoutes()
+  const exemploProjeto = {
+    basePath: '/processos/socilitacao-ferias',
+    projectName: 'Solicitação de Férias',
+    routes: [
+      { name: 'Atividades', path: '/atividades', component: 'TaskListView', icon: '◈' },
+      { name: 'Nova Solicitação', path: '/solicitar', component: 'SolicitarFeriasView', icon: '＋' },
+    ],
+  }
+  const mixed = buildMixedMenu(master, [exemploProjeto])
+
   return (
     <CurrentUserProvider>
       <div className="app-shell">
         <Sidebar>
-          <span className="nav-label">Menu</span>
-          <button className="nav-item active">
-            <span className="nav-icon">◈</span> Dashboard
-          </button>
-          <button className="nav-item">
-            <span className="nav-icon">✓</span> Tarefas
-          </button>
+          {/* Secao Master (gerada da lib) */}
+          <span className="nav-label">Master</span>
+          {mixed.master.items.map((item) => (
+            <button key={item.path} className="nav-item">
+              <span className="nav-icon">{item.icon}</span> {item.name}
+            </button>
+          ))}
+          {/* Secoes por projeto (filhos agregam via JSON) */}
+          {mixed.projects.map((section) => (
+            <div key={section.basePath}>
+              <span className="nav-label">{section.title}</span>
+              {section.items.map((item) => (
+                <button key={item.path} className="nav-item">
+                  <span className="nav-icon">{item.icon}</span> {item.name}
+                </button>
+              ))}
+            </div>
+          ))}
         </Sidebar>
         <main className="main-content">
-          <PageHeader title="Master Frontend" subtitle="Template Base" />
+          <PageHeader title="Master Frontend" subtitle="Template Base - Menu Misto" />
           <div style={{ padding: '40px' }}>
-            <h2>Layout Master - Apenas para Teste</h2>
+            <h2>Layout Master - Menu Misto (JSON)</h2>
             <p>
-              Este é o template padrão de layout para todos os frontends do BPMS. Cada projeto herda este
-              layout e adiciona seus próprios componentes e lógica de negócio.
+              Este template demonstra <strong>menu misto</strong>: Master gera menus base via{' '}
+              <code>masterRoutes.json</code> + projetos filhos agregam seções via{' '}
+              <code>routes.json</code> separado por projeto.
             </p>
-            <h3>Componentes Disponíveis:</h3>
+            <h3>Componentes:</h3>
             <ul>
               <li>
-                <code>Sidebar</code> — Navegação lateral (aceita children)
+                <code>Sidebar</code> — Renderiza seções Master + Projetos
               </li>
               <li>
-                <code>PageHeader</code> — Cabeçalho da página
+                <code>getMasterRoutes()</code> — JSON estático da lib
               </li>
               <li>
-                <code>AppFooter</code> — Rodapé (customizável)
+                <code>loadMixedRoutes(['/routes.json'])</code> — Master + filhos (fetch)
               </li>
               <li>
-                <code>CurrentUserProvider</code> — Context de usuário
-              </li>
-              <li>
-                <code>useCurrentUser()</code> — Hook para acessar usuário
+                <code>buildMixedMenu(master, projects)</code> — Junta menus
               </li>
             </ul>
-            <h3>Services:</h3>
+            <h3>Services (lib):</h3>
             <ul>
               <li>
-                <code>apiClient</code> — Cliente HTTP genérico (get, post, put, delete, getPaginated)
+                <code>processService</code> / <code>taskService</code> — Motor 81
               </li>
             </ul>
-            <h3>Hooks:</h3>
-            <ul>
-              <li>
-                <code>useApi</code> — Para GET requests
-              </li>
-              <li>
-                <code>useMutation</code> — Para POST/PUT/DELETE requests
-              </li>
-              <li>
-                <code>useLocalStorage</code> — Persistência em localStorage
-              </li>
-              <li>
-                <code>useDebounce</code> — Debounce de valores
-              </li>
-            </ul>
-            <h3>Utils:</h3>
-            <ul>
-              <li>
-                <code>loadProjectRoutes</code> — Carrega routes.json dinamicamente
-              </li>
-              <li>
-                <code>buildMenuFromRoutes</code> — Converte routes.json em menu estruturado
-              </li>
-            </ul>
+            <h3>Exemplo JSON filho (routes.json):</h3>
+            <pre style={{ background: '#f5f5f5', padding: '12px', borderRadius: '4px', overflow: 'auto' }}>
+              {JSON.stringify(exemploProjeto, null, 2)}
+            </pre>
+            <h3>MixedMenu gerado:</h3>
+            <pre style={{ background: '#f5f5f5', padding: '12px', borderRadius: '4px', overflow: 'auto' }}>
+              {JSON.stringify(mixed, null, 2)}
+            </pre>
           </div>
         </main>
         <AppFooter />

@@ -47,14 +47,6 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-kubernetes</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-container-image-jib</artifactId>
-        </dependency>
 
     </dependencies>
 
@@ -116,6 +108,11 @@
             </plugin>
         </plugins>
     </build>
+
+    <properties>
+        <quarkus.kubernetes.deploy>false</quarkus.kubernetes.deploy>
+        <quarkus.container-image.build>false</quarkus.container-image.build>
+    </properties>
 
     <repositories>
 		<repository>

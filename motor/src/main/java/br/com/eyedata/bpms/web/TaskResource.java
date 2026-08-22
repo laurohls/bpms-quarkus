@@ -35,6 +35,13 @@ public class TaskResource {
     }
 
     @GET
+    @Path("/process/{processDefinitionId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<TaskSummary> listTasksByProcess(@PathParam("processDefinitionId") String processDefinitionId) {
+        return activeTaskService.findActiveTasksByProcess(processDefinitionId);
+    }
+
+    @GET
     @Path("/{taskId}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response openTask(@PathParam("taskId") String taskId) {

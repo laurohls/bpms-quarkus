@@ -15,8 +15,10 @@ import {
   PageHeader,
   AppFooter,
   CurrentUserProvider,
+  loadMasterAndProject,
   loadProjectRoutes,
-  buildMenuFromRoutes,
+  getMasterRoutes,
+  type MixedMenu,
   type ProjectRoutes,
 } from 'bpms-frontend-master'
 import './vendor/master/index.css'
@@ -53,24 +55,40 @@ const COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   ConsultarRespostaForm,
 }
 
-function AppLayout({ routes }: { routes: ProjectRoutes }) {
+function AppLayout({ mixed, projectRoutes }: { mixed: MixedMenu; projectRoutes: ProjectRoutes }) {
   const navigate = useNavigate()
 
   return (
     <>
       <div className="app-shell">
         <Sidebar>
-          <span className="nav-label">Menu</span>
-          {routes.routes.map((route: any) => (
+          {/* Master - gerado pela lib (JSON estatico) */}
+          <span className="nav-label">{mixed.master.title}</span>
+          {mixed.master.items.map((item) => (
             <button
-              key={route.path}
-              onClick={() => navigate('/' + route.path)}
+              key={item.path}
+              onClick={() => navigate(item.path)}
               className="nav-item"
               style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', width: '100%', textAlign: 'left' }}
             >
-              <span className="nav-icon">{route.icon}</span>
-              {route.name}
+              <span className="nav-icon">{item.icon}</span> {item.name}
             </button>
+          ))}
+          {/* Projetos filhos - agregados via JSON separado por projeto */}
+          {mixed.projects.map((section) => (
+            <div key={section.basePath}>
+              <span className="nav-label">{section.title}</span>
+              {section.items.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className="nav-item"
+                  style={{ all: 'unset', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 16px', width: '100%', textAlign: 'left' }}
+                >
+                  <span className="nav-icon">{item.icon}</span> {item.name}
+                </button>
+              ))}
+            </div>
           ))}
         </Sidebar>
 
@@ -88,17 +106,45 @@ function AppLayout({ routes }: { routes: ProjectRoutes }) {
 
           <div className="page-content">
             <Routes>
-              {routes.routes.map((route: any) => {
+              {/* Master routes (lib) - Início, Minhas Tarefas, Processos */}
+              {(() => {
+                const master = getMasterRoutes()
+                return master.routes.map((route) => {
+                  // Mapeia componentes master para componentes existentes no filho
+                  const masterCompMap: Record<string, string> = {
+                    DashboardView: 'TaskListView', // Início -> mostra atividades
+                    TaskListView: 'TaskListView',
+                    ProcessosView: 'ProcessosView',
+                  }
+                  const compName = masterCompMap[route.component] ?? route.component
+                  const Component = COMPONENT_MAP[compName as keyof typeof COMPONENT_MAP]
+                  if (!Component) return null
+                  const fullPath = route.path // master basePath "/" -> path ja absoluto
+                  return <Route key={`master-${route.path}`} path={fullPath} element={<Component />} />
+                })
+              })()}
+              {/* Rotas reais do projeto filho via routes.json (usa basePath para URL completa) */}
+              {projectRoutes.routes.map((route) => {
                 const Component = COMPONENT_MAP[route.component as keyof typeof COMPONENT_MAP]
                 if (!Component) {
                   console.warn(`Componente ${route.component} não encontrado`)
                   return null
                 }
-                // Adicionar / ao início da rota se não tiver
-                const routePath = route.path.startsWith('/') ? route.path : '/' + route.path
-                
-                return <Route key={route.path} path={routePath} element={<Component />} />
+                // Usa basePath do projeto para URL completa (ex: /processos/socilitacao-ferias/solicitar)
+                const base = projectRoutes.basePath.endsWith('/')
+                  ? projectRoutes.basePath.slice(0, -1)
+                  : projectRoutes.basePath
+                const p = route.path.startsWith('/') ? route.path : '/' + route.path
+                const fullPath = `${base}${p}`
+                return <Route key={route.path} path={fullPath} element={<Component />} />
               })}
+              {/* Fallback: rotas internas */}
+              <Route
+                path={`${projectRoutes.basePath}/tarefa/:id`}
+                element={<TaskDetailView />}
+              />
+              <Route path="/tarefa/:id" element={<TaskDetailView />} />
+              <Route path="/tarefa/:taskId" element={<TaskDetailView />} />
             </Routes>
           </div>
         </main>
@@ -110,20 +156,22 @@ function AppLayout({ routes }: { routes: ProjectRoutes }) {
 }
 
 export default function App() {
-  const [routes, setRoutes] = useState<ProjectRoutes | null>(null)
+  const [mixed, setMixed] = useState<MixedMenu | null>(null)
+  const [projectRoutes, setProjectRoutes] = useState<ProjectRoutes | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    loadProjectRoutes('/routes.json')
-      .then((config: any) => {
-        if (!config || !config.routes) {
-          throw new Error('Routes config is empty')
-        }
-        setRoutes(config)
+    // Menu misto: Master (lib) + projeto filho (routes.json) - JSON separado por projeto
+    Promise.all([loadMasterAndProject('/routes.json'), loadProjectRoutes('/routes.json')])
+      .then(([menu, proj]) => {
+        if (!menu || !menu.projects.length) throw new Error('Routes config is empty')
+        if (!proj || !proj.routes) throw new Error('Project routes empty')
+        setMixed(menu)
+        setProjectRoutes(proj)
         setLoading(false)
       })
-      .catch((err: any) => {
+      .catch((err: unknown) => {
         setError(err instanceof Error ? err.message : 'Erro ao carregar rotas')
         setLoading(false)
       })
@@ -138,7 +186,7 @@ export default function App() {
     )
   }
 
-  if (error || !routes) {
+  if (error || !mixed || !projectRoutes) {
     return (
       <div className="error-container">
         <h1>❌ Erro ao inicializar</h1>
@@ -150,7 +198,7 @@ export default function App() {
   return (
     <div id="app">
       <CurrentUserProvider>
-        <AppLayout routes={routes} />
+        <AppLayout mixed={mixed} projectRoutes={projectRoutes} />
       </CurrentUserProvider>
     </div>
   )

@@ -5,10 +5,11 @@
  */
 
 import type { Task } from '../../types'
+import type { TaskSummary } from 'bpms-frontend-master'
 import { formatDate } from '../../utils/dateHelpers'
 
 interface TaskCardProps {
-  task: Task
+  task: Task | TaskSummary
   onClick?: () => void
   actions?: React.ReactNode
 }

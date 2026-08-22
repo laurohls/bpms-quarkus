@@ -5,19 +5,21 @@
  */
 
 import { useState } from 'react'
-import axios from 'axios'
+import { useNavigate } from 'react-router-dom'
 import type { VacationFormData } from '../../types'
 import { daysBetween } from '../../utils/dateHelpers'
-
-const api = axios.create({ baseURL: import.meta.env.VITE_API_URL || 'http://localhost:81' })
+import { processService } from 'bpms-frontend-master'
 
 export default function SolicitarFeriasForm() {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState<VacationFormData>({
     employeeName: '',
     email: '',
     startDate: '',
     endDate: '',
     reason: '',
+    abonoPecuniario: false,
+    adiantamento13: false,
   })
 
   const [loading, setLoading] = useState(false)
@@ -37,12 +39,40 @@ export default function SolicitarFeriasForm() {
       setError('Informe a data de início.')
       return false
     }
+    // Regra: bloquear retroativos e antecedencia minima 30 dias
+    const hoje = new Date()
+    hoje.setHours(0, 0, 0, 0)
+    const inicio = new Date(formData.startDate)
+    if (inicio < hoje) {
+      setError('Data de início não pode ser retroativa.')
+      return false
+    }
+    const diffAntecedencia = Math.ceil((inicio.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+    if (diffAntecedencia < 30) {
+      setError(`Antecedência mínima de 30 dias. Faltam ${30 - diffAntecedencia} dias (início em ${formData.startDate}).`)
+      return false
+    }
     if (!formData.endDate) {
       setError('Informe a data de término.')
       return false
     }
     if (formData.endDate < formData.startDate) {
       setError('A data final deve ser igual ou posterior à data de início.')
+      return false
+    }
+    const dias = daysBetween(formData.startDate, formData.endDate)
+    // Regra: abono Sim -> limitar a 20 dias (10 abono + 20 ferias)
+    const maxDias = formData.abonoPecuniario ? 20 : 30
+    if (dias < 10) {
+      setError(`Quantidade mínima é 10 dias (informado ${dias}).`)
+      return false
+    }
+    if (dias > maxDias) {
+      setError(
+        formData.abonoPecuniario
+          ? `Com abono pecuniário, máximo é 20 dias (10 de abono). Informado ${dias}.`
+          : `Quantidade máxima é 30 dias (informado ${dias}).`,
+      )
       return false
     }
     if (!formData.reason.trim() || formData.reason.trim().length < 10) {
@@ -62,27 +92,38 @@ export default function SolicitarFeriasForm() {
     setLoading(true)
     try {
       const dias = daysBetween(formData.startDate, formData.endDate)
+      // Abono: se Sim, fixa 10 dias abono e limita ferias a 20 (ja validado)
+      const quantidadeDias = formData.abonoPecuniario ? Math.min(dias, 20) : dias
       const variables = {
         ...formData,
-        days: dias,
-        nome: formData.employeeName,
+        days: quantidadeDias,
+        quantidadeDias,
         dataInicio: formData.startDate,
         dataFim: formData.endDate,
         motivo: formData.reason,
-        dias,
+        dias: quantidadeDias,
+        diasAbono: formData.abonoPecuniario ? 10 : 0,
+        abonoPecuniario: !!formData.abonoPecuniario,
+        adiantamento13: !!formData.adiantamento13,
+        nome: formData.employeeName,
+        // Variaveis para gateways CIB7
+        saldoDisponivel: true, // sera recalculado no VerificarSaldoDelegate
+        antecedenciaMinima: true,
       }
-      const response = await api.post('/process', { variables })
+      await processService.createProcess(variables as Record<string, unknown>)
       setFormData({
         employeeName: '',
         email: '',
         startDate: '',
         endDate: '',
         reason: '',
+        abonoPecuniario: false,
+        adiantamento13: false,
       })
       setSuccess(true)
-      // Window location change to redirect after success
+      // Navigate after success using React Router
       setTimeout(() => {
-        window.location.href = '/solicitacao-ferias/minha-fila'
+        navigate('/atividades')
       }, 2000)
     } catch (err) {
       setError('Não foi possível criar a solicitação de férias. Tente novamente.')
@@ -109,10 +150,11 @@ export default function SolicitarFeriasForm() {
       )}
 
       <div className="form-group">
-        <label htmlFor="employeeName">Nome Completo *</label>
+        <label htmlFor="employeeName" className="form-label">Nome Completo *</label>
         <input
           id="employeeName"
           type="text"
+          className="form-input"
           value={formData.employeeName}
           onChange={(e) => setFormData({ ...formData, employeeName: e.target.value })}
           placeholder="Ex: João Silva"
@@ -122,10 +164,11 @@ export default function SolicitarFeriasForm() {
       </div>
 
       <div className="form-group">
-        <label htmlFor="email">Email *</label>
+        <label htmlFor="email" className="form-label">Email *</label>
         <input
           id="email"
           type="email"
+          className="form-input"
           value={formData.email}
           onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           placeholder="seu.email@example.com"
@@ -136,10 +179,11 @@ export default function SolicitarFeriasForm() {
 
       <div className="form-row">
         <div className="form-group">
-          <label htmlFor="startDate">Data de Início *</label>
+          <label htmlFor="startDate" className="form-label">Data de Início *</label>
           <input
             id="startDate"
             type="date"
+            className="form-input"
             value={formData.startDate}
             onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
             required
@@ -148,10 +192,11 @@ export default function SolicitarFeriasForm() {
         </div>
 
         <div className="form-group">
-          <label htmlFor="endDate">Data de Término *</label>
+          <label htmlFor="endDate" className="form-label">Data de Término *</label>
           <input
             id="endDate"
             type="date"
+            className="form-input"
             value={formData.endDate}
             onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
             required
@@ -161,16 +206,47 @@ export default function SolicitarFeriasForm() {
 
         {dias > 0 && (
           <div className="form-group">
-            <label>Total de Dias</label>
-            <div className="dias-badge">{dias} dias</div>
+            <label className="form-label">Total de Dias</label>
+            <div className="dias-badge">
+              {formData.abonoPecuniario ? Math.min(dias, 20) : dias} dias {formData.abonoPecuniario && dias > 20 && '(limitado a 20 + 10 abono)'}
+            </div>
           </div>
         )}
       </div>
 
+      <div className="form-row">
+        <div className="form-group">
+          <label className="form-label">Abono Pecuniário (Vender 1/3) *</label>
+          <select
+            className="form-input"
+            value={formData.abonoPecuniario ? 'sim' : 'nao'}
+            onChange={(e) => setFormData({ ...formData, abonoPecuniario: e.target.value === 'sim' })}
+            disabled={loading}
+          >
+            <option value="nao">Não</option>
+            <option value="sim">Sim (limita a 20 dias + 10 abono)</option>
+          </select>
+          <small className="form-hint">Se Sim, suas férias serão no máximo 20 dias.</small>
+        </div>
+        <div className="form-group">
+          <label className="form-label">Adiantamento 13º Salário</label>
+          <select
+            className="form-input"
+            value={formData.adiantamento13 ? 'sim' : 'nao'}
+            onChange={(e) => setFormData({ ...formData, adiantamento13: e.target.value === 'sim' })}
+            disabled={loading}
+          >
+            <option value="nao">Não</option>
+            <option value="sim">Sim</option>
+          </select>
+        </div>
+      </div>
+
       <div className="form-group">
-        <label htmlFor="reason">Motivo da Solicitação *</label>
+        <label htmlFor="reason" className="form-label">Motivo da Solicitação *</label>
         <textarea
           id="reason"
+          className="form-textarea"
           value={formData.reason}
           onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
           placeholder="Descreva o motivo da sua solicitação de férias (mín. 10 caracteres)..."

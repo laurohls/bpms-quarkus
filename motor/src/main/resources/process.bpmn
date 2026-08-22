@@ -1,78 +1,221 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.34.0">
-  <bpmn:process id="process" isExecutable="true" camunda:historyTimeToLive="1">
-    <bpmn:startEvent id="StartEvent_1" name="Start">
-      <bpmn:outgoing>Flow_StartToService</bpmn:outgoing>
-    </bpmn:startEvent>
-    <bpmn:serviceTask id="ServiceTask_1" name="Service Task" camunda:delegateExpression="#{serviceDelegate}">
-      <bpmn:incoming>Flow_StartToService</bpmn:incoming>
-      <bpmn:outgoing>Flow_ServiceToRH</bpmn:outgoing>
-    </bpmn:serviceTask>
-    <bpmn:userTask id="RHReviewTask" name="Analisar solicitação de férias" camunda:candidateGroups="RH">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:camunda="http://camunda.org/schema/1.0/bpmn"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn"
+                  exporter="Camunda Modeler" exporterVersion="5.34.0">
+  <bpmn:process id="process" name="Solicitação de Férias" isExecutable="true" camunda:historyTimeToLive="5">
+    <bpmn:laneSet>
+      <bpmn:lane id="Lane_Solicitante" name="Solicitante (Colaborador)">
+        <bpmn:flowNodeRef>StartSolicitacao</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ServiceVerificarSaldo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GatewaySaldo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndRecusadoSaldo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>TaskAjusteDatas</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndSucesso</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>EndCancelamento</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_Gestor" name="Gestor Direto">
+        <bpmn:flowNodeRef>TaskAprovacaoGestor</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GatewayGestor</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="Lane_RH" name="Recursos Humanos (RH)">
+        <bpmn:flowNodeRef>TaskValidacaoRH</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>GatewayConformidade</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ServiceEnviarFolha</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+
+    <!-- Evento de Início - Colaborador preenche formulário -->
+    <bpmn:startEvent id="StartSolicitacao" name="Solicitar Férias">
       <bpmn:extensionElements>
         <camunda:formData>
-          <camunda:formField id="rhDecision" label="Decisão" type="enum">
-            <camunda:value id="APPROVED" name="Aprovar" />
-            <camunda:value id="REJECTED" name="Recusar" />
-            <camunda:value id="ADJUSTMENT_REQUIRED" name="Solicitar ajuste" />
-          </camunda:formField>
-          <camunda:formField id="rhResponse" label="Resposta do RH" type="string" />
+          <camunda:formField id="dataInicio" label="Data de Início" type="date" />
+          <camunda:formField id="quantidadeDias" label="Quantidade de Dias" type="long" />
+          <camunda:formField id="abonoPecuniario" label="Abono Pecuniário (Vender 1/3)" type="boolean" />
+          <camunda:formField id="adiantamento13" label="Adiantamento 13º" type="boolean" />
+          <camunda:formField id="email" label="Email Solicitante" type="string" />
+          <camunda:formField id="employeeName" label="Nome Colaborador" type="string" />
+          <camunda:formField id="reason" label="Motivo" type="string" />
         </camunda:formData>
       </bpmn:extensionElements>
-      <bpmn:incoming>Flow_ServiceToRH</bpmn:incoming>
-      <bpmn:outgoing>Flow_RHToEmployee</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:userTask id="EmployeeResponseTask" name="Consultar resposta de férias" camunda:assignee="${email}">
-      <bpmn:incoming>Flow_RHToEmployee</bpmn:incoming>
-      <bpmn:outgoing>Flow_EmployeeToEnd</bpmn:outgoing>
-    </bpmn:userTask>
-    <bpmn:endEvent id="EndEvent_1" name="End">
-      <bpmn:incoming>Flow_EmployeeToEnd</bpmn:incoming>
+      <bpmn:outgoing>Flow_Start_To_VerificaSaldo</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <!-- Service Task: Verificar Saldo no ERP -->
+    <bpmn:serviceTask id="ServiceVerificarSaldo" name="Verificar Saldo no ERP" camunda:delegateExpression="#{verificarSaldoDelegate}">
+      <bpmn:incoming>Flow_Start_To_VerificaSaldo</bpmn:incoming>
+      <bpmn:outgoing>Flow_Verifica_To_GatewaySaldo</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <!-- Gateway Exclusivo - Validação Automática -->
+    <bpmn:exclusiveGateway id="GatewaySaldo" name="Saldo e antecedência OK?">
+      <bpmn:incoming>Flow_Verifica_To_GatewaySaldo</bpmn:incoming>
+      <bpmn:outgoing>Flow_GatewaySaldo_To_Gestor</bpmn:outgoing>
+      <bpmn:outgoing>Flow_GatewaySaldo_To_Recusado</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:endEvent id="EndRecusadoSaldo" name="Fim - Recusado (Saldo/Antecedência)">
+      <bpmn:incoming>Flow_GatewaySaldo_To_Recusado</bpmn:incoming>
     </bpmn:endEvent>
-    <bpmn:sequenceFlow id="Flow_StartToService" sourceRef="StartEvent_1" targetRef="ServiceTask_1" />
-    <bpmn:sequenceFlow id="Flow_ServiceToRH" sourceRef="ServiceTask_1" targetRef="RHReviewTask" />
-    <bpmn:sequenceFlow id="Flow_RHToEmployee" sourceRef="RHReviewTask" targetRef="EmployeeResponseTask" />
-    <bpmn:sequenceFlow id="Flow_EmployeeToEnd" sourceRef="EmployeeResponseTask" targetRef="EndEvent_1" />
+
+    <!-- User Task: Aprovação do Gestor -->
+    <bpmn:userTask id="TaskAprovacaoGestor" name="Aprovação do Gestor" camunda:candidateGroups="Gestor" camunda:assignee="${gestorEmail}">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="parecerGestor" label="Parecer do Gestor" type="enum">
+            <camunda:value id="Aprovado" name="Aprovar" />
+            <camunda:value id="Reprovado" name="Reprovar" />
+          </camunda:formField>
+          <camunda:formField id="motivoRecusa" label="Motivo da Recusa" type="string">
+            <camunda:validation>
+              <camunda:constraint name="required" config="" />
+            </camunda:validation>
+          </camunda:formField>
+          <camunda:formField id="dataInicio" label="Data Início (readOnly)" type="date" camunda:properties>
+            <camunda:property name="readOnly" value="true" />
+          </camunda:formField>
+          <camunda:formField id="quantidadeDias" label="Dias (readOnly)" type="long">
+            <camunda:properties>
+              <camunda:property name="readOnly" value="true" />
+            </camunda:properties>
+          </camunda:formField>
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_GatewaySaldo_To_Gestor</bpmn:incoming>
+      <bpmn:incoming>Flow_Ajuste_To_Gestor</bpmn:incoming>
+      <bpmn:outgoing>Flow_Gestor_To_GatewayGestor</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Gateway Exclusivo - Decisão do Gestor -->
+    <bpmn:exclusiveGateway id="GatewayGestor" name="Gestor Aprovou?">
+      <bpmn:incoming>Flow_Gestor_To_GatewayGestor</bpmn:incoming>
+      <bpmn:outgoing>Flow_GatewayGestor_To_RH</bpmn:outgoing>
+      <bpmn:outgoing>Flow_GatewayGestor_To_Ajuste</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Ajuste de Datas - Colaborador -->
+    <bpmn:userTask id="TaskAjusteDatas" name="Ajustar Datas (Colaborador)" camunda:assignee="${email}">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="novaDataInicio" label="Nova Data Início" type="date" />
+          <camunda:formField id="novaQuantidadeDias" label="Nova Quantidade Dias" type="long" />
+          <camunda:formField id="observacaoAjuste" label="Observação Ajuste" type="string" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_GatewayGestor_To_Ajuste</bpmn:incoming>
+      <bpmn:outgoing>Flow_Ajuste_To_Gestor</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- User Task: Validação do RH -->
+    <bpmn:userTask id="TaskValidacaoRH" name="Validação do RH" camunda:candidateGroups="RH">
+      <bpmn:extensionElements>
+        <camunda:formData>
+          <camunda:formField id="parecerRH" label="Parecer RH" type="enum">
+            <camunda:value id="Aprovado" name="Aprovar" />
+            <camunda:value id="Reprovado" name="Reprovar" />
+            <camunda:value id="Ajuste" name="Solicitar Ajuste" />
+          </camunda:formField>
+          <camunda:formField id="conformidadeLegal" label="Conformidade Legal" type="boolean" />
+          <camunda:formField id="rhResponse" label="Resposta RH" type="string" />
+        </camunda:formData>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_GatewayGestor_To_RH</bpmn:incoming>
+      <bpmn:outgoing>Flow_RH_To_GatewayConformidade</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <!-- Gateway Conformidade Legal -->
+    <bpmn:exclusiveGateway id="GatewayConformidade" name="Conformidade Legal?">
+      <bpmn:incoming>Flow_RH_To_GatewayConformidade</bpmn:incoming>
+      <bpmn:outgoing>Flow_Conformidade_To_Folha</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Conformidade_To_Cancelamento</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <!-- Service Task: Enviar Dados para Folha -->
+    <bpmn:serviceTask id="ServiceEnviarFolha" name="Enviar Dados para Folha de Pagamento" camunda:delegateExpression="#{enviarFolhaDelegate}">
+      <bpmn:incoming>Flow_Conformidade_To_Folha</bpmn:incoming>
+      <bpmn:outgoing>Flow_Folha_To_Sucesso</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EndSucesso" name="Fim - Férias Agendadas">
+      <bpmn:incoming>Flow_Folha_To_Sucesso</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:endEvent id="EndCancelamento" name="Fim - Cancelamento">
+      <bpmn:incoming>Flow_Conformidade_To_Cancelamento</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <!-- Sequence Flows com condições -->
+    <bpmn:sequenceFlow id="Flow_Start_To_VerificaSaldo" sourceRef="StartSolicitacao" targetRef="ServiceVerificarSaldo" />
+    <bpmn:sequenceFlow id="Flow_Verifica_To_GatewaySaldo" sourceRef="ServiceVerificarSaldo" targetRef="GatewaySaldo" />
+    <bpmn:sequenceFlow id="Flow_GatewaySaldo_To_Gestor" sourceRef="GatewaySaldo" targetRef="TaskAprovacaoGestor">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${saldoDisponivel == true &amp;&amp; antecedenciaMinima == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_GatewaySaldo_To_Recusado" sourceRef="GatewaySaldo" targetRef="EndRecusadoSaldo">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${saldoDisponivel == false || antecedenciaMinima == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Gestor_To_GatewayGestor" sourceRef="TaskAprovacaoGestor" targetRef="GatewayGestor" />
+    <bpmn:sequenceFlow id="Flow_GatewayGestor_To_RH" sourceRef="GatewayGestor" targetRef="TaskValidacaoRH">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${parecerGestor == 'Aprovado'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_GatewayGestor_To_Ajuste" sourceRef="GatewayGestor" targetRef="TaskAjusteDatas">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${parecerGestor == 'Reprovado'}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Ajuste_To_Gestor" sourceRef="TaskAjusteDatas" targetRef="TaskAprovacaoGestor" />
+    <bpmn:sequenceFlow id="Flow_RH_To_GatewayConformidade" sourceRef="TaskValidacaoRH" targetRef="GatewayConformidade" />
+    <bpmn:sequenceFlow id="Flow_Conformidade_To_Folha" sourceRef="GatewayConformidade" targetRef="ServiceEnviarFolha">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${conformidadeLegal == true}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Conformidade_To_Cancelamento" sourceRef="GatewayConformidade" targetRef="EndCancelamento">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${conformidadeLegal == false}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Folha_To_Sucesso" sourceRef="ServiceEnviarFolha" targetRef="EndSucesso" />
+
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="process">
-      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1">
-        <dc:Bounds x="179" y="99" width="36" height="36" />
+      <bpmndi:BPMNShape id="StartSolicitacao_di" bpmnElement="StartSolicitacao">
+        <dc:Bounds x="150" y="80" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceVerificarSaldo_di" bpmnElement="ServiceVerificarSaldo">
+        <dc:Bounds x="250" y="60" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GatewaySaldo_di" bpmnElement="GatewaySaldo">
+        <dc:Bounds x="400" y="75" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="185" y="142" width="24" height="14" />
+          <dc:Bounds x="395" y="135" width="60" height="20" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Activity_1_di" bpmnElement="ServiceTask_1">
-        <dc:Bounds x="280" y="77" width="100" height="80" />
+      <bpmndi:BPMNShape id="EndRecusadoSaldo_di" bpmnElement="EndRecusadoSaldo">
+        <dc:Bounds x="400" y="200" width="36" height="36" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="RHReviewTask_di" bpmnElement="RHReviewTask">
-        <dc:Bounds x="440" y="77" width="140" height="80" />
+      <bpmndi:BPMNShape id="TaskAprovacaoGestor_di" bpmnElement="TaskAprovacaoGestor">
+        <dc:Bounds x="520" y="60" width="120" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="EmployeeResponseTask_di" bpmnElement="EmployeeResponseTask">
-        <dc:Bounds x="640" y="77" width="140" height="80" />
+      <bpmndi:BPMNShape id="GatewayGestor_di" bpmnElement="GatewayGestor">
+        <dc:Bounds x="700" y="75" width="50" height="50" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_1_di" bpmnElement="EndEvent_1">
-        <dc:Bounds x="840" y="99" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="690" y="142" width="20" height="14" />
-        </bpmndi:BPMNLabel>
+      <bpmndi:BPMNShape id="TaskAjusteDatas_di" bpmnElement="TaskAjusteDatas">
+        <dc:Bounds x="520" y="200" width="120" height="80" />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge id="Flow_StartToService_di" bpmnElement="Flow_StartToService">
-        <di:waypoint x="215" y="117" />
-        <di:waypoint x="280" y="117" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_ServiceToRH_di" bpmnElement="Flow_ServiceToRH">
-        <di:waypoint x="380" y="117" />
-        <di:waypoint x="440" y="117" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_RHToEmployee_di" bpmnElement="Flow_RHToEmployee">
-        <di:waypoint x="580" y="117" />
-        <di:waypoint x="640" y="117" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_EmployeeToEnd_di" bpmnElement="Flow_EmployeeToEnd">
-        <di:waypoint x="780" y="117" />
-        <di:waypoint x="840" y="117" />
-      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="TaskValidacaoRH_di" bpmnElement="TaskValidacaoRH">
+        <dc:Bounds x="820" y="60" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="GatewayConformidade_di" bpmnElement="GatewayConformidade">
+        <dc:Bounds x="1000" y="75" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ServiceEnviarFolha_di" bpmnElement="ServiceEnviarFolha">
+        <dc:Bounds x="1100" y="60" width="120" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndSucesso_di" bpmnElement="EndSucesso">
+        <dc:Bounds x="1280" y="80" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndCancelamento_di" bpmnElement="EndCancelamento">
+        <dc:Bounds x="1000" y="200" width="36" height="36" />
+      </bpmndi:BPMNShape>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>
