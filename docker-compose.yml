@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bpms-postgres
+    environment:
+      POSTGRES_DB: bpms
+      POSTGRES_USER: bpms
+      POSTGRES_PASSWORD: bpms
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bpms -d bpms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - bpms-postgres-data:/var/lib/postgresql/data
+
+  motor:
+    container_name: bpms-motor
+    build:
+      context: .
+      dockerfile: motor/Dockerfile
+    environment:
+      DB_JDBC_URL: jdbc:postgresql://postgres:5432/bpms
+      DB_USERNAME: bpms
+      DB_PASSWORD: bpms
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "81:81"
+
+  backend-ferias:
+    container_name: bpms-backend-ferias
+    build:
+      context: ./processos/socilitacao-ferias/backend
+      dockerfile: Dockerfile
+    depends_on:
+      - motor
+    ports:
+      - "82:82"
+
+  frontend-ferias:
+    container_name: bpms-frontend-ferias
+    build:
+      context: ./processos/socilitacao-ferias/frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - motor
+    ports:
+      - "3002:80"
+
+volumes:
+  bpms-postgres-data:

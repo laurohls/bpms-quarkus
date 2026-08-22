@@ -1,0 +1,6 @@
+**/target
+**/node_modules
+**/dist
+.git
+.opencode
+processos/socilitacao-ferias/frontend/src/App.tsx.new

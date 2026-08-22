@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/index.ts","./src/main.tsx","./src/components/layout.tsx","./src/contexts/usercontext.tsx","./src/hooks/index.ts","./src/services/api.ts","./src/types/index.ts","./src/utils/routeloader.ts"],"errors":true,"version":"6.0.3"}

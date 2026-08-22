@@ -53,19 +53,29 @@ java -jar motor/target/quarkus-app/quarkus-run.jar
 
 ## Testing the Application
 
-Once running (default port 8080), you can:
+Once running (default port 81), you can:
 
 1. **Start a process instance:**
    ```bash
-   curl http://localhost:8080/start-process
+   curl http://localhost:81/start-process
    ```
 
 2. **Check application health:**
    ```bash
-   curl http://localhost:8080/q/health
+   curl http://localhost:81/q/health
    ```
 
 The service task will execute the `ServiceDelegate`, which logs a message and sets a process variable.
+
+## Database
+
+The process engine is configured to use PostgreSQL via:
+
+- `DB_JDBC_URL` (default `jdbc:postgresql://localhost:5432/bpms`)
+- `DB_USERNAME` (default `bpms`)
+- `DB_PASSWORD` (default `bpms`)
+
+For local containerized execution, use the repository-level [docker-compose.yml](C:/Projetos/Pessoal/bpms-quarkus/docker-compose.yml).
 
 ## Running on Kubernetes (kind)
 

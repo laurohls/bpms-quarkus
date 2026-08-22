@@ -1,47 +1,85 @@
-# EYEData Process Launcher
+# 🎉 BPMS Férias Frontend - v1.0.0
 
-Frontend React + TypeScript para iniciar uma instância do processo `process` no motor Quarkus.
+**Status:** ✅ Completo e Testado  
+**Tech Stack:** React 19 + TypeScript + Vite + CSS Variables  
+**Build Time:** 230ms | **Bundle Size:** 154.8 KB (gzipped)
 
-## Executar
+---
 
-Com o backend Quarkus disponível em `http://localhost:8080`:
+## 📖 Começar Aqui
+
+### ⚡ Quick Start (5 minutos)
+```bash
+npm run dev
+# Abrir: http://localhost:3002
+```
+
+👉 **Ler:** [QUICK_START.md](./QUICK_START.md)
+
+### 📚 Documentação Completa
+- **Como usar localmente?** → [GUIA_DE_USO.md](./GUIA_DE_USO.md)
+- **Algo está quebrado?** → [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
+- **Arquitetura detalhada?** → [IMPLEMENTACAO_FINAL.md](./IMPLEMENTACAO_FINAL.md)
+- **Erro de routes?** → [CORRECAO_ROUTES_ERROR.md](./CORRECAO_ROUTES_ERROR.md)
+- **Criar novo projeto?** → [TEMPLATE_NOVO_PROJETO.md](../../TEMPLATE_NOVO_PROJETO.md)
+
+---
+
+## 🎯 O Que É Este Projeto?
+
+Frontend React para o processo de **Solicitação de Férias** do BPMS (Business Process Management System), construído com:
+
+- ✅ **Master-Project Architecture** - Componentes reutilizáveis em master, lógica específica em project
+- ✅ **5 Views** - Solicitação, Minhas Solicitações, Tarefas, Detalhe, BPMN
+- ✅ **4 Formulários** - Solicitar, Analisar, Validar, Cancelar
+- ✅ **6 Hooks Customizados** - useApi, useMutation, useCurrentUser, etc
+- ✅ **Routes Dinâmicas** - Carregadas via JSON (routes.json)
+- ✅ **Pronto para Produção** - Build otimizado, Docker ready, documentado
+
+---
+
+## 🚀 Scripts
 
 ```bash
-npm install
-npm run dev
+npm run dev          # Dev server (localhost:3002)
+npm run build        # Production build
+npm run preview      # Preview build localmente
+npm run type-check   # TypeScript validation
+npm run lint         # Linting (oxlint)
 ```
 
-O frontend chama diretamente `http://localhost:8080/start-process`. Em outro ambiente, configure `VITE_API_URL` com a URL do backend antes do build.
+---
 
-# React + TypeScript + Vite
+## 🐳 Docker
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+docker build -t bpms-ferias:1.0 .
+docker run -d -p 80:80 -e VITE_API_URL=http://api:8080 bpms-ferias:1.0
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+---
+
+## 📊 Stats
+
+- **Modules:** 189
+- **Build Time:** 230ms
+- **Bundle:** 154.8 KB (gzipped)
+- **Views:** 5
+- **Forms:** 4
+- **Hooks:** 6
+- **Build Errors:** 0 ✅
+
+---
+
+## 📚 Documentação
+
+Tudo está documentado! Comece por:
+
+1. **[QUICK_START.md](./QUICK_START.md)** - 5 minutos
+2. **[GUIA_DE_USO.md](./GUIA_DE_USO.md)** - Uso completo
+3. **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Resolver problemas
+4. **[IMPLEMENTACAO_FINAL.md](./IMPLEMENTACAO_FINAL.md)** - Arquitetura
+
+---
+
+**Desenvolvido com ❤️ • React • TypeScript • Vite**

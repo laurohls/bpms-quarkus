@@ -16,7 +16,7 @@ A basic Quarkus application showing:
 ```bash
 cd motor/
 mvn quarkus:dev
-curl http://localhost:8080/start-process
+curl http://localhost:81/start-process
 ```
 
 From the repository root, use `mvn -pl motor quarkus:dev`.
@@ -30,6 +30,39 @@ mvn -pl motor quarkus:dev
 ```
 
 See [motor/README.md](motor/README.md) for detailed instructions.
+
+## Docker Compose (PostgreSQL)
+
+This repository now includes a full container setup with:
+
+- `postgres` for persistence
+- `motor` connected to PostgreSQL
+- `backend-ferias` (Quarkus)
+- `frontend-ferias` (React + Nginx)
+
+Run from repository root:
+
+```bash
+docker compose up --build
+```
+
+Main URLs:
+
+- Frontend: `http://localhost:3002`
+- Motor API: `http://localhost:81`
+- Backend férias: `http://localhost:82`
+- PostgreSQL: `localhost:5432` (`bpms`/`bpms`)
+
+### Atalho no Windows (CMD)
+
+Use o script [docker-projetos.bat](C:/Projetos/Pessoal/bpms-quarkus/docker-projetos.bat):
+
+```bat
+docker-projetos.bat up-build
+docker-projetos.bat ps
+docker-projetos.bat logs motor
+docker-projetos.bat down
+```
 
 ## License
 

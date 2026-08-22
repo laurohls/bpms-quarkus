@@ -1,0 +1,35 @@
+{
+  "basePath": "/processos/socilitacao-ferias",
+  "routes": [
+    {
+      "name": "Atividades",
+      "path": "/atividades",
+      "component": "TaskListView",
+      "icon": "◈"
+    },
+    {
+      "name": "Nova Solicitação",
+      "path": "/solicitar",
+      "component": "SolicitarFeriasView",
+      "icon": "＋"
+    },
+    {
+      "name": "Minhas Respostas",
+      "path": "/minhas-respostas",
+      "component": "MinhasSolicitacoesView",
+      "icon": "✓"
+    },
+    {
+      "name": "Processos BPMN",
+      "path": "/processos",
+      "component": "ProcessosView",
+      "icon": "⌘"
+    },
+    {
+      "name": "_tarefa",
+      "path": "/tarefa/:id",
+      "component": "TaskDetailView",
+      "icon": "_"
+    }
+  ]
+}
